@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from werkzeug.exceptions import BadRequest, HTTPException, UnsupportedMediaType
+from werkzeug.exceptions import BadRequest, HTTPException, InternalServerError, UnsupportedMediaType
 from amazoncaptcha import AmazonCaptcha
 from amazoncaptcha.exceptions import ContentTypeError
 from flask import Flask, request, json
@@ -16,9 +16,13 @@ PORT = 3003
 def resolve():
     try:
         if request.method == 'POST':
-            captcha = AmazonCaptcha(request.stream).solve()
+            captcha = AmazonCaptcha(request.stream, devmode=True).solve()
         elif request.method == 'GET':
-            captcha = AmazonCaptcha.fromlink(request.args.get('url')).solve()
+            captcha = AmazonCaptcha.fromlink(
+                request.args.get('url'), devmode=True).solve()
+        if '-' in captcha:
+            raise InternalServerError(
+                "Unable to recognize characters. Partial result: " + captcha)
         return {
             "meta": {
                 "code": 200,
